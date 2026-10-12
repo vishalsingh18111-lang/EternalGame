@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark" ng-app="eternalApp">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eternal Games — Game Store</title>
+  <meta name="description" content="Eternal Games: discover, wishlist and rate the best games across PC, PlayStation, Xbox and mobile." />
+  <meta name="theme-color" content="#090a0d" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Bootstrap 5 + Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<a class="skip-link" href="#games">Skip to games</a>
+
+<!-- ====== NAVBAR ====== -->
+<nav class="navbar navbar-expand-lg fixed-top site-nav" id="mainNav" ng-controller="NavController as nav" eg-scrolled>
+  <div class="container-xxl">
+    <a class="navbar-brand brand" href="#home" aria-label="Eternal Games, home">
+      <svg class="brand-mark" viewBox="0 0 34 18" aria-hidden="true">
+        <path d="M9 3a6 6 0 1 0 0 12c4 0 6-3 8-6s4-6 8-6a6 6 0 1 1 0 12c-4 0-6-3-8-6S13 3 9 3z" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
+      </svg>
+      <span>Eternal<b>Games</b></span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
+      <i class="bi bi-list"></i>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav mx-auto" eg-collapse-on-click>
+        <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#categories">Categories</a></li>
+        <li class="nav-item"><a class="nav-link" href="#games">Games</a></li>
+        <li class="nav-item"><a class="nav-link" href="#wishlist">Wishlist</a></li>
+        <li class="nav-item"><a class="nav-link" href="#profile">Profile</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <label class="search-box">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input type="search" placeholder="Search games, genres, studios" aria-label="Search games"
+                 ng-model="nav.state.query" ng-model-options="{ debounce: 250 }" ng-change="nav.onSearch()" />
+        </label>
+        <a class="wish-pill" href="#wishlist" aria-label="Wishlist, {{wishlist.count()}} games">
+          <i class="bi" ng-class="wishlist.count() ? 'bi-heart-fill' : 'bi-heart'"></i>
+          <span ng-cloak>{{wishlist.count()}}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- ====== HERO — featured games slider ====== -->
+<header class="hero" id="home" ng-controller="HeroController as hero" ng-attr-style="--tint: {{hero.active.tint}}">
+  <!-- Blurred artwork of the active game lights the whole section -->
+  <div class="hero-backdrop" aria-hidden="true">
+    <div class="hero-backdrop-img" ng-repeat="g in hero.slides track by g.id"
+         ng-class="{ 'is-active': $index === hero.index }"
+         ng-style="{ 'background-image': 'url(' + g.thumb + ')' }"></div>
+  </div>
+
+  <div class="container-xxl hero-inner">
+    <div class="row align-items-center g-4 g-lg-5 hero-stage">
+      <div class="col-lg-5 order-2 order-lg-1">
+        <!-- ng-repeat over one item so the block is rebuilt (and re-animated) on every slide -->
+        <div class="hero-copy" ng-repeat="g in [hero.active] track by g.id" ng-cloak>
+          <span class="hero-badge"><i></i>{{g.featured}}</span>
+          <h1 class="hero-title">{{g.title}}</h1>
+          <p class="hero-desc">{{g.desc}}</p>
+          <ul class="meta-list">
+            <li><i class="bi bi-star-fill text-star"></i> {{g.rating | number:1}}</li>
+            <li>{{g.genre}}</li>
+            <li><i class="bi" ng-class="platformIcon(g.platform)"></i> {{g.platform}}</li>
+            <li>{{g.year}}</li>
+          </ul>
+          <div class="hero-actions">
+            <button type="button" class="btn btn-volt btn-lg" ng-click="openGame(g)">
+              View details <i class="bi bi-arrow-right"></i>
+            </button>
+            <button type="button" class="btn btn-ghost btn-lg" ng-click="playTrailer(g)">
+              <i class="bi bi-play-fill"></i> Trailer
+            </button>
+            <button type="button" class="btn btn-ghost btn-lg btn-square" ng-class="{ 'is-on': wishlist.has(g.id) }"
+                    ng-click="wishlist.toggle(g)" aria-pressed="{{wishlist.has(g.id)}}"
+                    aria-label="{{wishlist.has(g.id) ? 'Remove from wishlist' : 'Add to wishlist'}}">
+              <i class="bi" ng-class="wishlist.has(g.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7 order-1 order-lg-2">
+        <button type="button" class="hero-art" ng-click="openGame(hero.active)" aria-label="View details for {{hero.active.title}}">
+          <img ng-repeat="g in hero.slides track by g.id" ng-src="{{g.img}}" alt=""
+               ng-class="{ 'is-active': $index === hero.index }" width="1536" height="1024" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Slide picker: the progress bar on the active item is also the autoplay timer -->
+    <div class="hero-rail" ng-cloak>
+      <button type="button" class="rail-arrow" ng-click="hero.prev()" aria-label="Previous game"><i class="bi bi-chevron-left"></i></button>
+      <div class="rail-items">
+        <button type="button" class="rail-item" ng-repeat="g in hero.slides track by g.id"
+                ng-class="{ 'is-active': $index === hero.index }" ng-click="hero.go($index)"
+                aria-label="Show {{g.title}}" aria-current="{{$index === hero.index}}">
+          <span class="rail-progress" ng-if="$index === hero.index" eg-animation-end="hero.next()"></span>
+          <img ng-src="{{g.thumb}}" alt="" width="640" height="427" />
+          <span class="rail-text">
+            <strong>{{g.title}}</strong>
+            <small>{{g.genre}}</small>
+          </span>
+        </button>
+      </div>
+      <button type="button" class="rail-arrow" ng-click="hero.next()" aria-label="Next game"><i class="bi bi-chevron-right"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- ====== STATS ====== -->
+<section class="stats" aria-label="Store in numbers">
+  <div class="container-xxl">
+    <div class="row g-0">
+      <div class="col-6 col-md-3 stat">
+        <div class="stat-num" eg-count-up="5000" data-suffix="+">5,000+</div>
+        <div class="stat-label">Games available</div>
+      </div>
+      <div class="col-6 col-md-3 stat">
+        <div class="stat-num" eg-count-up="2.5" data-decimals="1" data-suffix="M">2.5M</div>
+        <div class="stat-label">Active gamers</div>
+      </div>
+      <div class="col-6 col-md-3 stat">
+        <div class="stat-num" eg-count-up="150" data-suffix="+">150+</div>
+        <div class="stat-label">Top developers</div>
+      </div>
+      <div class="col-6 col-md-3 stat">
+        <div class="stat-num" eg-count-up="98" data-suffix="%">98%</div>
+        <div class="stat-label">Player satisfaction</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== CATEGORIES ====== -->
+<section class="section" id="categories" ng-controller="CategoriesController as cats">
+  <div class="container-xxl">
+    <div class="section-head" eg-reveal>
+      <div>
+        <span class="eyebrow">Browse by genre</span>
+        <h2 class="section-title">Pick your kind of game</h2>
+      </div>
+      <p class="section-note">Eight genres, one catalogue. Choose a tile to filter the store.</p>
+    </div>
+
+    <div class="row g-3" eg-reveal ng-cloak>
+      <div class="col-6 col-lg-3" ng-repeat="c in cats.genres track by c.name">
+        <button type="button" class="cat-tile" ng-attr-style="--tint: {{c.tint}}" ng-click="cats.pick(c.name)">
+          <span class="cat-covers" aria-hidden="true">
+            <img ng-repeat="g in c.games | limitTo:2 track by g.id" ng-src="{{g.thumb}}" alt="" loading="lazy" width="640" height="427" />
+          </span>
+          <span class="cat-icon"><i class="bi" ng-class="c.icon"></i></span>
+          <span class="cat-name">{{c.name}}</span>
+          <span class="cat-count">{{c.games.length}} {{c.games.length === 1 ? 'game' : 'games'}}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== GAMES — filters + grid ====== -->
+<section class="section section-alt" id="games" ng-controller="CatalogueController as cat">
+  <div class="container-xxl">
+    <div class="section-head" eg-reveal>
+      <div>
+        <span class="eyebrow">The catalogue</span>
+        <h2 class="section-title">Find your next game</h2>
+      </div>
+      <p class="section-note" ng-cloak aria-live="polite">
+        Showing <b>{{cat.results.length}}</b> of {{cat.total}} games
+        <span ng-if="cat.state.query">for “{{cat.state.query}}”</span>
+      </p>
+    </div>
+
+    <!-- Genre chips -->
+    <div class="chips" role="group" aria-label="Filter by genre" ng-cloak>
+      <button type="button" class="chip" ng-class="{ 'is-active': !cat.state.genre }" ng-click="cat.setGenre('')">
+        All <span>{{cat.total}}</span>
+      </button>
+      <button type="button" class="chip" ng-repeat="g in cat.genres track by g.name"
+              ng-class="{ 'is-active': cat.state.genre === g.name }" ng-click="cat.setGenre(g.name)">
+        {{g.name}} <span>{{g.count}}</span>
+      </button>
+    </div>
+
+    <!-- Selects -->
+    <div class="row g-2 g-md-3 align-items-end filters" ng-cloak>
+      <div class="col-6 col-md">
+        <label class="filter-label" for="filterPlatform">Platform</label>
+        <select id="filterPlatform" class="form-select" ng-model="cat.state.platform" ng-options="p for p in cat.platforms">
+          <option value="">All platforms</option>
+        </select>
+      </div>
+      <div class="col-6 col-md">
+        <label class="filter-label" for="filterYear">Release year</label>
+        <select id="filterYear" class="form-select" ng-model="cat.state.year" ng-options="y for y in cat.years">
+          <option value="">All years</option>
+        </select>
+      </div>
+      <div class="col-6 col-md">
+        <label class="filter-label" for="filterRating">Rating</label>
+        <select id="filterRating" class="form-select" ng-model="cat.state.minRating" ng-options="r.value as r.label for r in cat.ratings">
+          <option value="">Any rating</option>
+        </select>
+      </div>
+      <div class="col-6 col-md">
+        <label class="filter-label" for="sortBy">Sort by</label>
+        <select id="sortBy" class="form-select" ng-model="cat.state.sort" ng-options="s.value as s.label for s in cat.sorts"></select>
+      </div>
+      <div class="col-12 col-md-auto">
+        <button type="button" class="btn btn-ghost w-100" ng-click="cat.reset()" ng-disabled="!cat.state.isFiltered()">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="row g-3 g-md-4 game-grid" ng-cloak>
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3" ng-repeat="g in cat.results | limitTo: cat.limit track by g.id">
+        <article class="game-card" ng-attr-style="--tint: {{g.tint}}; --i: {{$index % 8}}">
+          <button type="button" class="game-card-hit" ng-click="openGame(g)" aria-label="View details for {{g.title}}">
+            <span class="game-card-art">
+              <img ng-src="{{g.thumb}}" alt="" loading="lazy" width="640" height="427" />
+            </span>
+          </button>
+          <button type="button" class="heart-btn" ng-class="{ 'is-on': wishlist.has(g.id) }" ng-click="wishlist.toggle(g)"
+                  aria-pressed="{{wishlist.has(g.id)}}"
+                  aria-label="{{wishlist.has(g.id) ? 'Remove ' + g.title + ' from wishlist' : 'Add ' + g.title + ' to wishlist'}}">
+            <i class="bi" ng-class="wishlist.has(g.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
+          </button>
+          <div class="game-card-body">
+            <div class="game-card-top">
+              <h3 class="game-card-title">{{g.title}}</h3>
+              <span class="rating"><i class="bi bi-star-fill"></i> {{g.rating | number:1}}</span>
+            </div>
+            <p class="game-card-dev">{{g.developer}}</p>
+            <div class="game-card-meta">
+              <span class="tag tag-tint">{{g.genre}}</span>
+              <span class="tag"><i class="bi" ng-class="platformIcon(g.platform)"></i> {{g.platform}}</span>
+              <span class="tag">{{g.year}}</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- No results -->
+    <div class="empty-state" ng-if="!cat.results.length" ng-cloak>
+      <i class="bi bi-search"></i>
+      <h3>No games match those filters</h3>
+      <p>Try a different genre or clear the search to see the whole catalogue.</p>
+      <button type="button" class="btn btn-volt" ng-click="cat.reset()">Clear all filters</button>
+    </div>
+
+    <div class="text-center mt-5" ng-if="cat.results.length > cat.limit" ng-cloak>
+      <button type="button" class="btn btn-ghost btn-lg" ng-click="cat.loadMore()">
+        Load more games <span class="text-muted-2">({{cat.results.length - cat.limit}} left)</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== WISHLIST ====== -->
+<section class="section" id="wishlist" ng-controller="WishlistController as wl">
+  <div class="container-xxl">
+    <div class="section-head" eg-reveal>
+      <div>
+        <span class="eyebrow">My collection</span>
+        <h2 class="section-title">Your wishlist</h2>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" ng-if="wl.list.games.length" ng-click="wl.list.clear()" ng-cloak>
+        <i class="bi bi-trash3"></i> Clear all
+      </button>
+    </div>
+
+    <div class="empty-state" ng-if="!wl.list.games.length" ng-cloak>
+      <i class="bi bi-heart"></i>
+      <h3>Nothing saved yet</h3>
+      <p>Tap the heart on any game and it will wait for you here, even after you close the tab.</p>
+      <a class="btn btn-volt" href="#games">Browse games</a>
+    </div>
+
+    <div class="row g-3" ng-cloak>
+      <div class="col-12 col-lg-6" ng-repeat="g in wl.list.games track by g.id">
+        <article class="wish-row" ng-attr-style="--tint: {{g.tint}}">
+          <button type="button" class="wish-art" ng-click="openGame(g)" aria-label="View details for {{g.title}}">
+            <img ng-src="{{g.thumb}}" alt="" loading="lazy" width="640" height="427" />
+          </button>
+          <div class="wish-info">
+            <h3 class="game-card-title">{{g.title}}</h3>
+            <p class="game-card-dev">{{g.genre}} · {{g.platform}} · {{g.year}}</p>
+            <span class="rating"><i class="bi bi-star-fill"></i> {{g.rating | number:1}}</span>
+          </div>
+          <div class="wish-actions">
+            <button type="button" class="btn btn-ghost btn-sm" ng-click="openGame(g)">Details</button>
+            <button type="button" class="btn btn-ghost btn-sm btn-square btn-danger-ghost" ng-click="wl.list.toggle(g)" aria-label="Remove {{g.title}} from wishlist">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== GAMER PROFILE ====== -->
+<section class="section section-alt" id="profile" ng-controller="ProfileController as profile">
+  <div class="container-xxl">
+    <div class="section-head" eg-reveal>
+      <div>
+        <span class="eyebrow">Your account</span>
+        <h2 class="section-title">Gamer profile</h2>
+      </div>
+    </div>
+
+    <div class="profile-card" eg-reveal ng-cloak>
+      <div class="profile-id">
+        <div class="avatar" ng-attr-style="--xp: {{profile.xpPercent}}%">
+          <span>{{profile.user.initials}}</span>
+          <em>Lv {{profile.user.level}}</em>
+        </div>
+        <div class="profile-text">
+          <h3 class="profile-name">{{profile.user.name}}</h3>
+          <p class="profile-bio">{{profile.user.bio}}</p>
+          <div class="xp">
+            <div class="progress" role="progressbar" aria-label="Experience towards next level"
+                 aria-valuenow="{{profile.xpPercent}}" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar" ng-style="{ width: profile.xpPercent + '%' }"></div>
+            </div>
+            <small>{{profile.user.xp | number}} / {{profile.user.xpNext | number}} XP to level {{profile.user.level + 1}}</small>
+          </div>
+          <div class="badges">
+            <span class="badge-chip" ng-repeat="b in profile.user.badges" ng-class="'tone-' + b.tone">
+              <i class="bi" ng-class="b.icon"></i> {{b.label}}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="pstat"><b>247</b><span>Games played</span></div>
+        <div class="pstat"><b>1,890</b><span>Achievements</span></div>
+        <div class="pstat"><b>{{profile.ratings.count()}}</b><span>Games rated</span></div>
+        <div class="pstat"><b>{{profile.wishlist.count()}}</b><span>On wishlist</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ====== FOOTER ====== -->
+<footer class="site-footer" ng-controller="FooterController as footer">
+  <div class="container-xxl">
+    <div class="row g-4 g-lg-5">
+      <div class="col-lg-4">
+        <a class="brand" href="#home">
+          <svg class="brand-mark" viewBox="0 0 34 18" aria-hidden="true">
+            <path d="M9 3a6 6 0 1 0 0 12c4 0 6-3 8-6s4-6 8-6a6 6 0 1 1 0 12c-4 0-6-3-8-6S13 3 9 3z" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
+          </svg>
+          <span>Eternal<b>Games</b></span>
+        </a>
+        <p class="footer-desc">Your ultimate destination for the best gaming experiences. Play, explore, conquer.</p>
+        <div class="social-links">
+          <a href="#" aria-label="Discord"><i class="bi bi-discord"></i></a>
+          <a href="#" aria-label="X / Twitter"><i class="bi bi-twitter-x"></i></a>
+          <a href="#" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+          <a href="#" aria-label="Twitch"><i class="bi bi-twitch"></i></a>
+        </div>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h4 class="footer-heading">Store</h4>
+        <ul class="footer-links">
+          <li><a href="#">New Releases</a></li>
+          <li><a href="#">Top Sellers</a></li>
+          <li><a href="#">Upcoming</a></li>
+          <li><a href="#">On Sale</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h4 class="footer-heading">Support</h4>
+        <ul class="footer-links">
+          <li><a href="#">Help Center</a></li>
+          <li><a href="#">Refunds</a></li>
+          <li><a href="#">Community</a></li>
+          <li><a href="#">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-4">
+        <h4 class="footer-heading">Newsletter</h4>
+        <p class="footer-desc">Get the latest game releases and offers.</p>
+        <form name="newsletterForm" class="newsletter" novalidate ng-submit="footer.subscribe(newsletterForm)">
+          <input type="email" class="form-control" placeholder="you@example.com" aria-label="Email address" required ng-model="footer.email" />
+          <button type="submit" class="btn btn-volt">Subscribe</button>
+        </form>
+      </div>
+    </div>
+    <div class="footer-bottom" ng-cloak>© {{footer.year}} Eternal Games. All rights reserved.</div>
+  </div>
+</footer>
+
+<!-- Back to top -->
+<button type="button" class="back-top" eg-back-top aria-label="Back to top"><i class="bi bi-arrow-up"></i></button>
+
+<!-- ====== GAME DETAIL MODAL ====== -->
+<div class="modal fade" id="gameModal" tabindex="-1" aria-labelledby="gameModalTitle" aria-hidden="true" ng-controller="GameModalController as gm">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content game-modal" ng-attr-style="--tint: {{gm.modal.game.tint}}">
+      <button type="button" class="btn-close modal-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-body" ng-if="gm.modal.game">
+        <div class="row g-4 g-lg-5">
+          <div class="col-lg-7">
+            <img class="modal-art" ng-src="{{gm.modal.game.img}}" alt="{{gm.modal.game.title}} key art" width="1536" height="1024" />
+            <h4 class="mini-heading">System requirements</h4>
+            <dl class="specs">
+              <div ng-repeat="r in gm.requirements"><dt>{{r.label}}</dt><dd>{{r.value}}</dd></div>
+            </dl>
+          </div>
+          <div class="col-lg-5">
+            <span class="tag tag-tint">{{gm.modal.game.genre}}</span>
+            <h2 class="modal-title-xl" id="gameModalTitle">{{gm.modal.game.title}}</h2>
+            <p class="modal-desc">{{gm.modal.game.desc}}</p>
+
+            <dl class="facts">
+              <div><dt>Developer</dt><dd>{{gm.modal.game.developer}}</dd></div>
+              <div><dt>Platform</dt><dd><i class="bi" ng-class="platformIcon(gm.modal.game.platform)"></i> {{gm.modal.game.platform}}</dd></div>
+              <div><dt>Release year</dt><dd>{{gm.modal.game.year}}</dd></div>
+              <div><dt>Players</dt><dd>Single / Online multiplayer</dd></div>
+              <div><dt>Store rating</dt><dd class="rating"><i class="bi bi-star-fill"></i> {{gm.modal.game.rating | number:1}} / 5</dd></div>
+            </dl>
+
+            <h4 class="mini-heading">Your rating</h4>
+            <div class="rate" ng-mouseleave="gm.hover = 0">
+              <button type="button" ng-repeat="n in gm.stars" ng-click="gm.rate(n)" ng-mouseenter="gm.hover = n"
+                      ng-class="{ 'is-on': n <= (gm.hover || gm.ratings.get(gm.modal.game.id)) }"
+                      aria-label="Rate {{n}} out of 5">
+                <i class="bi bi-star-fill"></i>
+              </button>
+              <span>{{gm.ratings.get(gm.modal.game.id) ? 'You rated it ' + gm.ratings.get(gm.modal.game.id) + '/5' : 'Tap a star to rate'}}</span>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn btn-volt btn-lg" ng-click="playTrailer(gm.modal.game)">
+                <i class="bi bi-play-fill"></i> Watch trailer
+              </button>
+              <button type="button" class="btn btn-ghost btn-lg" ng-class="{ 'is-on': wishlist.has(gm.modal.game.id) }" ng-click="wishlist.toggle(gm.modal.game)">
+                <i class="bi" ng-class="wishlist.has(gm.modal.game.id) ? 'bi-heart-fill' : 'bi-heart'"></i>
+                {{wishlist.has(gm.modal.game.id) ? 'In wishlist' : 'Add to wishlist'}}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TRAILER MODAL ====== -->
+<div class="modal fade" id="trailerModal" tabindex="-1" aria-label="Trailer" aria-hidden="true"
+     ng-controller="TrailerController as tc" eg-modal-hidden="tc.trailer.stop()">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content trailer-modal">
+      <div class="trailer-head">
+        <span>{{tc.trailer.game.title}} — Trailer</span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="ratio ratio-16x9">
+        <!-- ng-if removes the iframe on close, which stops playback -->
+        <iframe ng-if="tc.trailer.url" ng-src="{{tc.trailer.url}}" title="{{tc.trailer.game.title}} trailer"
+                allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== TOASTS ====== -->
+<div class="toast-stack" aria-live="polite" ng-controller="ToastController as tc" ng-cloak>
+  <div class="eg-toast" ng-repeat="t in tc.toast.items">
+    <i class="bi" ng-class="t.icon"></i>
+    <span>{{t.message}}</span>
+    <button type="button" ng-click="tc.toast.dismiss(t)" aria-label="Dismiss"><i class="bi bi-x"></i></button>
+  </div>
+</div>
+
+<!-- AngularJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- App -->
+<script src="js/app.js"></script>
+<script src="js/data/games.js"></script>
+<script src="js/services.js"></script>
+<script src="js/directives.js"></script>
+<script src="js/controllers.js"></script>
+</body>
+</html>
